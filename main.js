@@ -1,4 +1,6 @@
 import './inventario.js';
+import './pedidos.js';
+import './respaldo.js';
 import './clima.js';
 import './calculadora.js';
 
@@ -15,5 +17,4 @@ addEventListener('online', mostrarConexion);
 addEventListener('offline', mostrarConexion);
 mostrarConexion();
 
-navigator.storage?.persist?.(); // pide que el navegador no borre los datos si falta espacio
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

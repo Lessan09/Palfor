@@ -94,12 +94,14 @@ function tarjeta(p) {
 }
 
 async function ajustar(p, delta) {
-  try { await db.guardar({ ...p, existencias: Math.max(0, p.existencias + delta) }); await cargar(); } catch (e) { avisar(`No se pudo guardar: ${e.message}`, true); }
+  try { await db.guardar({ ...p, existencias: Math.max(0, p.existencias + delta) }); } catch (e) { avisar(`No se pudo guardar: ${e.message}`, true); }
 }
 
 async function eliminar(p) {
-  if (!confirm(`¿Borrar "${p.nombre}" y sus existencias? No se puede deshacer (guarda un respaldo antes si dudas).`)) return;
-  try { await db.borrar(p.id); await cargar(); avisar('Planta borrada.'); } catch (e) { avisar(`No se pudo borrar: ${e.message}`, true); }
+  const apartadas = (await db.pedidos()).filter((x) => x.plantaId === p.id && x.estado === 'pendiente').length;
+  const aviso = apartadas ? `\n\nOjo: tiene ${apartadas} pedido(s) pendiente(s); al borrarla no podrás devolver su stock.` : '';
+  if (!confirm(`¿Borrar "${p.nombre}" y sus existencias? No se puede deshacer (guarda un respaldo antes si dudas).${aviso}`)) return;
+  try { await db.borrar(p.id); avisar('Planta borrada.'); } catch (e) { avisar(`No se pudo borrar: ${e.message}`, true); }
 }
 
 // ---- Formulario y foto ----
@@ -160,31 +162,13 @@ forma.addEventListener('submit', async (e) => {
     : [planta.precio, planta.costo, planta.existencias].some((n) => !Number.isFinite(n) || n < 0) ? 'Precio, costo y existencias deben ser cero o más.'
     : planta.lote && plantas.some((p) => p.id !== planta.id && normalizar(p.lote) === normalizar(planta.lote)) ? 'Ya existe una planta con ese código de lote.' : '';
   if (error) { $('#form-error').textContent = error; return; }
-  try { await db.guardar(planta); dialogo.close(); await cargar(); avisar('Planta guardada.'); } catch (err) { $('#form-error').textContent = `No se pudo guardar: ${err.message}`; }
+  try { await db.guardar(planta); dialogo.close(); avisar('Planta guardada.'); } catch (err) { $('#form-error').textContent = `No se pudo guardar: ${err.message}`; }
 });
 $('#cancelar').addEventListener('click', () => dialogo.close());
 dialogo.addEventListener('close', () => { if (previa.src) URL.revokeObjectURL(previa.src); });
 
-// ---- Respaldo ----
-$('#exportar').addEventListener('click', async () => {
-  try {
-    const enlace = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(new Blob([await db.exportar()], { type: 'application/json' })),
-      download: `palfor-respaldo-${new Date().toISOString().slice(0, 10)}.json`
-    });
-    enlace.click();
-    setTimeout(() => URL.revokeObjectURL(enlace.href), 10_000);
-    avisar('Respaldo guardado en tus descargas.');
-  } catch (e) { avisar(`No se pudo crear el respaldo: ${e.message}`, true); }
-});
-$('#importar').addEventListener('change', async (e) => {
-  const archivo = e.target.files[0];
-  e.target.value = '';
-  if (!archivo || !confirm('Restaurar reemplaza TODO lo que hay en este dispositivo por el contenido del respaldo. ¿Continuar?')) return;
-  try { const n = await db.importar(await archivo.text()); await cargar(); avisar(`Respaldo restaurado: ${n} plantas.`); } catch (err) { avisar(`No se pudo restaurar: ${err.message}`, true); }
-});
-
 $('#nueva').addEventListener('click', () => abrirFormulario());
 $('#buscar').addEventListener('input', dibujar);
 $('#agrupar').addEventListener('change', dibujar);
+addEventListener('palfor:cambio', () => cargar().catch((e) => avisar(e.message, true)));
 cargar().catch((e) => avisar(`No se pudo abrir los datos de este dispositivo: ${e.message}`, true));

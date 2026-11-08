@@ -18,6 +18,9 @@
   </header>
 
   <main>
+    <div id="aviso-respaldo" class="aviso aviso-respaldo" role="alert" hidden>
+      <span></span><button id="aviso-guardar" class="boton-claro" type="button">Guardar respaldo ahora</button>
+    </div>
     <section id="inventario" class="vista" aria-label="Inventario">
       <div id="aviso-agotadas" class="aviso" hidden></div>
       <div class="encabezado">
@@ -34,9 +37,23 @@
       <div id="lista" class="lista"></div>
       <div class="fila respaldo">
         <button id="exportar" class="boton-claro" type="button">Guardar respaldo</button>
+        <button id="compartir" class="boton-claro" type="button" hidden>Enviar respaldo (Drive, WhatsApp…)</button>
         <label class="boton-claro">Restaurar respaldo<input id="importar" type="file" accept="application/json,.json" hidden></label>
       </div>
       <p id="estado" class="estado" role="status" aria-live="polite"></p>
+      <p id="proteccion" class="nota"></p>
+    </section>
+
+    <section id="pedidos" class="vista" aria-label="Pedidos" hidden>
+      <div class="encabezado">
+        <div><p class="eyebrow">CLIENTES</p><h2>Pedidos</h2></div>
+        <button id="nuevo-pedido" class="boton" type="button">+ Nuevo pedido</button>
+      </div>
+      <p id="pedidos-estado" class="estado" role="status" aria-live="polite"></p>
+      <label class="campo-corto">Ver
+        <select id="filtro-pedidos"><option value="pendiente">Pendientes</option><option value="entregado">Entregados</option><option value="cancelado">Cancelados</option><option value="">Todos</option></select>
+      </label>
+      <div id="lista-pedidos" class="lista"></div>
     </section>
 
     <section id="clima" class="vista" aria-label="Clima" hidden>
@@ -61,6 +78,7 @@
 
   <nav class="pestanas" aria-label="Secciones">
     <button type="button" data-vista="inventario" aria-current="page">🌱<span>Inventario</span></button>
+    <button type="button" data-vista="pedidos">📋<span>Pedidos</span></button>
     <button type="button" data-vista="clima">☀<span>Clima</span></button>
     <button type="button" data-vista="calculadora">＋<span>Cuentas</span></button>
   </nav>
@@ -93,6 +111,25 @@
       <div class="fila">
         <button class="boton" type="submit">Guardar</button>
         <button id="cancelar" class="boton-claro" type="button">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="form-pedido">
+    <form id="pedido" method="dialog">
+      <h2 id="pedido-titulo">Nuevo pedido</h2>
+      <label>Cliente<input name="cliente" required maxlength="80" autocomplete="off"></label>
+      <div id="lineas" class="lineas"></div>
+      <button id="otra-linea" class="boton-claro" type="button">+ Agregar otra planta</button>
+      <label>Estado
+        <select name="estado"><option value="pendiente">Pendiente</option><option value="entregado">Entregado</option><option value="cancelado">Cancelado (devuelve el stock)</option></select>
+      </label>
+      <label>Notas<textarea name="notas" rows="2" maxlength="500"></textarea></label>
+      <p id="pedido-error" class="estado error" role="alert"></p>
+      <div class="fila">
+        <button class="boton" type="submit">Guardar</button>
+        <button id="pedido-cerrar" class="boton-claro" type="button">Cerrar</button>
+        <button id="pedido-borrar" class="boton-claro peligro" type="button" hidden>Borrar pedido</button>
       </div>
     </form>
   </dialog>

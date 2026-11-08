@@ -104,3 +104,14 @@ dialog h2 { margin: 0; font-size: 28px; } dialog form { display: grid; gap: 14px
 .zona-foto.sobre { background: #dfe8d6; } .zona-foto img { max-width: 100%; max-height: 200px; border-radius: 12px; }
 @media (max-width: 420px) { .tarjeta { grid-template-columns: 72px 1fr; } .tarjeta img, .sinfoto { width: 72px; height: 72px; } .acciones { margin-left: 0; width: 100%; } .dos { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto; transition-duration: .01ms !important; } }
+
+/* Pedidos y aviso de respaldo */
+.aviso-respaldo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.tarjeta.pedido { grid-template-columns: 1fr; border-left-color: #c28a1d; background: #fdf6e3; }
+.tarjeta.pedido.entregado { border-left-color: #5c8a5f; background: var(--surface); }
+.tarjeta.pedido.cancelado { border-left-color: #b4483a; background: #fbeae6; opacity: .75; }
+.piezas { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-weight: 700; color: var(--green-dark); }
+.tarjeta.pedido .acciones { margin: 10px 0 0; flex-wrap: wrap; }
+.lineas { display: grid; gap: 8px; }
+.linea { display: grid; grid-template-columns: 1fr 84px 44px; gap: 8px; align-items: center; }
+.linea button { width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); box-shadow: var(--relieve-chico); color: var(--rojo); font-size: 20px; font-weight: 700; }
