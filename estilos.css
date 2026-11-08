@@ -23,7 +23,7 @@ h1, h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; lette
 .barra { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; justify-content: space-between; gap: 12px;
   min-height: 68px; padding: env(safe-area-inset-top) max(16px, calc((100% - 960px) / 2)) 0; border-bottom: 1px solid #e0e5d9cc; background: #f8f7f0ef; backdrop-filter: blur(14px); }
 .marca { display: inline-flex; align-items: center; gap: 9px; margin: 0; font-family: inherit; font-size: 20px; font-weight: 700; letter-spacing: -.4px; }
-.marca-icono { width: 35px; height: 35px; border-radius: 10px; box-shadow: var(--relieve-chico); }
+.marca-icono { width: 40px; height: 36px; object-fit: contain; }
 .marca b { color: var(--green); }
 .conexion { margin: 0; padding: 5px 11px; border-radius: 999px; background: var(--surface); box-shadow: var(--hundido); color: var(--muted); font-size: 12px; font-weight: 700; }
 .conexion.sin { color: var(--rojo); }
