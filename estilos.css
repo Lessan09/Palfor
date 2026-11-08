@@ -105,6 +105,8 @@ dialog h2 { margin: 0; font-size: 28px; } dialog form { display: grid; gap: 14px
 @media (max-width: 420px) { .tarjeta { grid-template-columns: 72px 1fr; } .tarjeta img, .sinfoto { width: 72px; height: 72px; } .acciones { margin-left: 0; width: 100%; } .dos { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto; transition-duration: .01ms !important; } }
 
+.instalar { min-height: 36px; margin-left: auto; padding: 0 14px; font-size: 13px; }
+
 /* Pedidos y aviso de respaldo */
 .aviso-respaldo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .tarjeta.pedido { grid-template-columns: 1fr; border-left-color: #c28a1d; background: #fdf6e3; }
