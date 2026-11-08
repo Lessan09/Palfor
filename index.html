@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#547558">
+  <meta name="theme-color" content="#f8f7f0">
   <title>Palfor</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="iconos/icono-192.png">
@@ -13,22 +13,23 @@
 </head>
 <body>
   <header class="barra">
-    <h1>✿ Palfor</h1>
+    <h1 class="marca"><img class="marca-icono" src="iconos/icono-192.png" alt="" width="35" height="35"><span>Vivero <b>Palfor</b></span></h1>
     <p id="conexion" class="conexion" role="status"></p>
   </header>
 
   <main>
     <section id="inventario" class="vista" aria-label="Inventario">
       <div id="aviso-agotadas" class="aviso" hidden></div>
-      <div class="fila">
-        <input id="buscar" type="search" placeholder="Buscar planta, lote o ubicación…" aria-label="Buscar" autocomplete="off">
-        <button id="nueva" class="boton" type="button">+ Planta</button>
+      <div class="encabezado">
+        <div><p class="eyebrow">PLANTAS</p><h2>Inventario</h2></div>
+        <button id="nueva" class="boton" type="button">+ Agregar planta</button>
       </div>
+      <div id="resumen" class="resumen" role="status"></div>
       <div class="fila">
+        <label class="busqueda"><span aria-hidden="true">⌕</span><input id="buscar" type="search" placeholder="Buscar planta, lote o ubicación…" aria-label="Buscar" autocomplete="off"></label>
         <label class="campo-corto">Ver
           <select id="agrupar"><option value="">Lista</option><option value="ubicacion">Por ubicación</option><option value="categoria">Por categoría</option></select>
         </label>
-        <p id="resumen" class="resumen" role="status"></p>
       </div>
       <div id="lista" class="lista"></div>
       <div class="fila respaldo">
@@ -39,7 +40,7 @@
     </section>
 
     <section id="clima" class="vista" aria-label="Clima" hidden>
-      <div class="fila"><h2>Clima · Tapachula</h2><button id="actualizar-clima" class="boton-claro" type="button">Actualizar</button></div>
+      <div class="encabezado"><div><p class="eyebrow">TAPACHULA, CHIAPAS</p><h2>Clima del vivero.</h2></div><button id="actualizar-clima" class="boton" type="button">Actualizar ↻</button></div>
       <p id="clima-estado" class="estado" role="status"></p>
       <p id="clima-consejo" class="aviso" hidden></p>
       <div id="clima-ahora" class="rejilla"></div>
@@ -49,6 +50,7 @@
     </section>
 
     <section id="calculadora" class="vista" aria-label="Calculadora" hidden>
+      <div class="encabezado"><div><p class="eyebrow">CUENTAS</p><h2>Calculadora.</h2></div></div>
       <div class="calc">
         <p id="calc-operacion" class="calc-operacion" aria-hidden="true"></p>
         <output id="calc-pantalla" class="calc-pantalla" aria-live="polite">0</output>

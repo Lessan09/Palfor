@@ -10,7 +10,7 @@ botones.forEach((b) => b.addEventListener('click', () => {
 }));
 
 const conexion = document.querySelector('#conexion');
-const mostrarConexion = () => { conexion.textContent = navigator.onLine ? 'En línea' : 'Sin conexión'; };
+const mostrarConexion = () => { conexion.textContent = navigator.onLine ? 'En línea' : 'Sin conexión'; conexion.classList.toggle('sin', !navigator.onLine); };
 addEventListener('online', mostrarConexion);
 addEventListener('offline', mostrarConexion);
 mostrarConexion();

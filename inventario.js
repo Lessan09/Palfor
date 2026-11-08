@@ -33,9 +33,15 @@ function dibujar() {
   const pocas = plantas.filter((p) => p.existencias > 0 && p.existencias <= POCAS).length;
   const costo = plantas.reduce((s, p) => s + p.existencias * p.costo, 0);
   const venta = plantas.reduce((s, p) => s + p.existencias * p.precio, 0);
-  $('#resumen').textContent = plantas.length
-    ? `${visibles.length === plantas.length ? plantas.length : `${visibles.length} de ${plantas.length}`} plantas · ${agotadas.length} agotadas · ${pocas} con pocas · Inventario: costo ${moneda.format(costo)}, venta ${moneda.format(venta)}`
-    : '';
+  const dinero = (n) => moneda.format(n);
+  const estadisticas = plantas.length ? [
+    [visibles.length === plantas.length ? plantas.length : `${visibles.length}/${plantas.length}`, 'Plantas'], [agotadas.length, 'Agotadas'], [pocas, 'Con pocas'],
+    [dinero(costo), 'Inventario a costo'], [dinero(venta), 'Inventario a precio']] : [];
+  $('#resumen').replaceChildren(...estadisticas.map(([valor, texto]) => {
+    const caja = el('div', '', 'estadistica');
+    caja.append(el('strong', String(valor)), el('span', texto));
+    return caja;
+  }));
 
   if (!visibles.length) {
     lista.replaceChildren(el('p', plantas.length ? 'Ninguna planta coincide con la búsqueda.' : 'Todavía no hay plantas. Toca “+ Planta” o restaura un respaldo.', 'estado'));
