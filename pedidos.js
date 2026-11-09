@@ -1,11 +1,9 @@
 import * as db from './db.js';
+import { $, el, fechaCorta, moneda, perezosa } from './ui.js';
 
-const $ = (s) => document.querySelector(s);
 const forma = $('#pedido'), dialogo = $('#form-pedido'), contenedor = $('#lineas'), lista = $('#lista-pedidos'), filtro = $('#filtro-pedidos'), estado = $('#pedidos-estado'), errorForma = $('#pedido-error');
-const fecha = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 let pedidos = [], plantas = [], editando = null;
 
-const el = (tag, texto = '', clase = '') => Object.assign(document.createElement(tag), { textContent: texto, className: clase });
 const avisar = (texto, error = false) => { estado.textContent = texto; estado.classList.toggle('error', error); };
 
 async function cargar() {
@@ -22,9 +20,9 @@ function tarjeta(p) {
   const art = el('article', '', `tarjeta pedido ${p.estado}`);
   const cuerpo = el('div');
   const piezas = el('ul', '', 'piezas');
-  p.lineas.forEach((l) => piezas.append(el('li', `${l.cantidad} × ${l.planta}`)));
-  const total = p.lineas.reduce((s, l) => s + l.cantidad, 0);
-  cuerpo.append(el('h3', p.cliente), piezas, el('p', `${total} planta(s) · ${fecha.format(new Date(p.fecha))}`, 'datos'));
+  p.lineas.forEach((l) => piezas.append(el('li', `${l.cantidad} × ${l.planta} · ${moneda.format(l.precio ?? 0)}`)));
+  const total = p.lineas.reduce((s, l) => s + l.cantidad, 0), importe = p.lineas.reduce((s, l) => s + l.cantidad * (l.precio ?? 0), 0);
+  cuerpo.append(el('h3', p.cliente), piezas, el('p', `${total} planta(s) · ${moneda.format(importe)} · ${fechaCorta.format(new Date(p.fecha))}${p.fechaEntrega ? ` · entregado ${fechaCorta.format(new Date(p.fechaEntrega))}` : ''}`, 'datos'));
   if (p.notas) cuerpo.append(el('p', p.notas, 'datos'));
   const acciones = el('div', '', 'acciones');
   const boton = (texto, accion, clase = '') => { const b = el('button', texto, clase); b.type = 'button'; b.addEventListener('click', accion); acciones.append(b); };
@@ -51,23 +49,30 @@ function fila(l = {}) {
   const sel = el('select');
   sel.required = true;
   sel.setAttribute('aria-label', 'Planta');
-  const opcion = (id, nombre, texto) => { const o = Object.assign(el('option', texto), { value: id }); o.dataset.nombre = nombre; return o; };
-  const validas = plantas.filter((p) => p.existencias + apartadoAqui(p.id) > 0 || p.id === l.plantaId).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-  sel.append(...validas.map((p) => opcion(p.id, p.nombre, `${p.nombre} (disponibles ${p.existencias + apartadoAqui(p.id)})`)));
+  // Cada opción lleva el precio y costo de la planta: el precio se propone en la línea y el costo se guarda con la venta.
+  const opcion = (id, nombre, texto, p) => { const o = Object.assign(el('option', texto), { value: id }); Object.assign(o.dataset, { nombre, precio: p?.precio ?? l.precio ?? 0, costo: p?.costo ?? l.costo ?? 0 }); return o; };
+  const validas = plantas.filter((p) => (!p.archivada && p.existencias + apartadoAqui(p.id) > 0) || p.id === l.plantaId).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  sel.append(...validas.map((p) => opcion(p.id, p.nombre, `${p.nombre} (disponibles ${p.existencias + apartadoAqui(p.id)})`, p)));
   if (l.plantaId !== undefined && !plantas.some((p) => p.id === l.plantaId)) sel.append(opcion(l.plantaId, l.planta, `${l.planta} (ya no existe)`));
   if (!sel.options.length) sel.append(opcion('', '', 'No hay plantas con existencias'));
   sel.value = l.plantaId ?? sel.options[0].value;
   const cantidad = Object.assign(document.createElement('input'), { type: 'number', min: 1, step: 1, value: l.cantidad ?? 1, required: true, inputMode: 'numeric' });
   cantidad.setAttribute('aria-label', 'Cantidad');
+  const precio = Object.assign(document.createElement('input'), { type: 'number', min: 0, step: 0.01, required: true, inputMode: 'decimal', value: l.precio ?? sel.selectedOptions[0].dataset.precio });
+  precio.setAttribute('aria-label', 'Precio de venta por pieza');
+  sel.addEventListener('change', () => { precio.value = sel.selectedOptions[0].dataset.precio; });
+  f.dataset.plantaOriginal = l.plantaId ?? '';
+  f.dataset.costoOriginal = l.costo ?? '';
   const quitar = el('button', '×');
   quitar.type = 'button';
   quitar.setAttribute('aria-label', 'Quitar esta planta');
   quitar.addEventListener('click', () => f.remove());
-  f.append(sel, cantidad, quitar);
+  f.append(sel, cantidad, precio, quitar);
   contenedor.append(f);
 }
 
-function abrir(p = null) {
+async function abrir(p = null) {
+  plantas = await db.todas(); // siempre con lo último, aunque la lista de pedidos aún esté cargando
   editando = p;
   forma.reset();
   contenedor.replaceChildren();
@@ -81,17 +86,20 @@ function abrir(p = null) {
 forma.addEventListener('submit', async (e) => {
   e.preventDefault();
   const cliente = forma.elements.cliente.value.trim();
-  const juntas = new Map(); // dos filas de la misma planta se suman en una
+  const juntas = new Map(); // dos filas de la misma planta con el mismo precio se suman en una
   for (const f of contenedor.children) {
-    const [sel, cant] = f.querySelectorAll('select, input');
+    const [sel, cant, prec] = f.querySelectorAll('select, input');
     if (sel.value === '') continue;
-    const id = Number(sel.value), cantidad = Number(cant.value);
-    juntas.set(id, { plantaId: id, planta: sel.selectedOptions[0].dataset.nombre, cantidad: (juntas.get(id)?.cantidad ?? 0) + cantidad });
+    const id = Number(sel.value), cantidad = Number(cant.value), precio = Number(prec.value), op = sel.selectedOptions[0].dataset;
+    const costo = String(id) === f.dataset.plantaOriginal && f.dataset.costoOriginal !== '' ? Number(f.dataset.costoOriginal) : Number(op.costo); // el costo de una línea ya guardada no cambia
+    const k = `${id}|${precio}|${costo}`;
+    juntas.set(k, { plantaId: id, planta: op.nombre, cantidad: (juntas.get(k)?.cantidad ?? 0) + cantidad, precio, costo });
   }
   const lineas = [...juntas.values()];
   const error = !cliente ? 'Escribe el nombre del cliente.'
     : !lineas.length ? 'Agrega al menos una planta.'
-    : lineas.some((l) => !Number.isInteger(l.cantidad) || l.cantidad < 1) ? 'Las cantidades deben ser números enteros de 1 o más.' : '';
+    : lineas.some((l) => !Number.isInteger(l.cantidad) || l.cantidad < 1) ? 'Las cantidades deben ser números enteros de 1 o más.'
+    : lineas.some((l) => !Number.isFinite(l.precio) || l.precio < 0) ? 'El precio debe ser cero o más.' : '';
   if (error) { errorForma.textContent = error; return; }
   const pedido = { ...(editando ?? {}), cliente, lineas, estado: forma.elements.estado.value, notas: forma.elements.notas.value.trim(), fecha: editando?.fecha ?? new Date().toISOString() };
   try { await db.guardarPedido(pedido); dialogo.close(); avisar('Pedido guardado.'); } catch (err) { errorForma.textContent = err.message; }
@@ -105,5 +113,4 @@ $('#otra-linea').addEventListener('click', () => fila());
 $('#pedido-cerrar').addEventListener('click', () => dialogo.close());
 $('#nuevo-pedido').addEventListener('click', () => abrir());
 filtro.addEventListener('change', dibujar);
-addEventListener('palfor:cambio', () => cargar().catch((e) => avisar(e.message, true)));
-cargar().catch((e) => avisar(e.message, true));
+perezosa('pedidos', cargar, (e) => avisar(e.message, true));

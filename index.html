@@ -22,27 +22,38 @@
     <div id="aviso-respaldo" class="aviso aviso-respaldo" role="alert" hidden>
       <span></span><button id="aviso-guardar" class="boton-claro" type="button">Guardar respaldo ahora</button>
     </div>
+
     <section id="inventario" class="vista" aria-label="Inventario">
       <div id="aviso-agotadas" class="aviso" hidden></div>
       <div class="encabezado">
         <div><p class="eyebrow">PLANTAS</p><h2>Inventario</h2></div>
         <button id="nueva" class="boton" type="button">+ Agregar planta</button>
       </div>
-      <div id="resumen" class="resumen" role="status"></div>
       <div class="fila">
-        <label class="busqueda"><span aria-hidden="true">⌕</span><input id="buscar" type="search" placeholder="Buscar planta, lote o ubicación…" aria-label="Buscar" autocomplete="off"></label>
+        <label class="busqueda"><span aria-hidden="true">⌕</span><input id="buscar" type="search" placeholder="Buscar planta, paquete, lote o ubicación…" aria-label="Buscar" autocomplete="off"></label>
+      </div>
+      <div id="chips" class="chips" role="group" aria-label="Filtrar por categoría"></div>
+      <div class="fila filtros">
+        <label class="campo-corto">Paquete <select id="filtro-paquete"><option value="">Todos</option></select></label>
         <label class="campo-corto">Ver
           <select id="agrupar"><option value="">Lista</option><option value="ubicacion">Por ubicación</option><option value="categoria">Por categoría</option></select>
         </label>
+        <label class="campo-corto">Mostrar
+          <select id="mostrar"><option value="">Activas</option><option value="archivadas">Archivadas</option></select>
+        </label>
       </div>
       <div id="lista" class="lista"></div>
-      <div class="fila respaldo">
-        <button id="exportar" class="boton-claro" type="button">Guardar respaldo</button>
-        <button id="compartir" class="boton-claro" type="button" hidden>Enviar respaldo (Drive, WhatsApp…)</button>
-        <label class="boton-claro">Restaurar respaldo<input id="importar" type="file" accept="application/json,.json" hidden></label>
-      </div>
       <p id="estado" class="estado" role="status" aria-live="polite"></p>
-      <p id="proteccion" class="nota"></p>
+    </section>
+
+    <section id="paquetes" class="vista" aria-label="Paquetes" hidden>
+      <div class="encabezado">
+        <div><p class="eyebrow">AGRUPA Y LLEVA CUENTA</p><h2>Paquetes</h2></div>
+        <button id="nuevo-paquete" class="boton" type="button">+ Nuevo paquete</button>
+      </div>
+      <p class="nota">Un paquete junta plantas (por ejemplo, las de un pedido especial) y lleva su propia cuenta. Las plantas siguen contando en el inventario general.</p>
+      <p id="paquetes-estado" class="estado" role="status" aria-live="polite"></p>
+      <div id="burbujas" class="burbujas"></div>
     </section>
 
     <section id="pedidos" class="vista" aria-label="Pedidos" hidden>
@@ -57,6 +68,48 @@
       <div id="lista-pedidos" class="lista"></div>
     </section>
 
+    <section id="estadisticas" class="vista" aria-label="Estadísticas" hidden>
+      <div class="encabezado">
+        <div><p class="eyebrow">NÚMEROS DEL VIVERO</p><h2>Estadísticas</h2></div>
+        <label class="campo-corto">Periodo
+          <select id="periodo"><option value="mes">Este mes</option><option value="3">3 meses</option><option value="todo">Todo</option></select>
+        </label>
+      </div>
+      <h3>Inventario ahora</h3>
+      <div id="est-inventario" class="resumen"></div>
+      <h3>Ventas del periodo</h3>
+      <div id="est-ventas" class="resumen"></div>
+      <p id="est-estimado" class="nota" hidden>Incluye ventas anteriores a la actualización, con precio y costo estimados al valor de hoy.</p>
+      <h3>Lo más vendido</h3>
+      <div id="est-top" class="lista-datos"></div>
+      <h3>Por categoría</h3>
+      <div id="est-categorias" class="lista-datos"></div>
+      <h3>Por paquete</h3>
+      <div id="est-paquetes" class="lista-datos"></div>
+      <h3>Mes por mes</h3>
+      <div id="est-meses" class="lista-datos"></div>
+    </section>
+
+    <section id="historial" class="vista" aria-label="Historial" hidden>
+      <div class="encabezado">
+        <div><p class="eyebrow">CADA ENTRADA Y SALIDA</p><h2>Historial</h2></div>
+        <label class="campo-corto">Paquete <select id="historial-paquete"><option value="">Todos</option></select></label>
+      </div>
+      <p class="nota">Aquí queda cada cambio de existencias: pedidos, devoluciones, entradas y bajas. Empieza el día que se actualizó la app.</p>
+      <div id="historial-lista" class="lista"></div>
+      <button id="historial-mas" class="boton-claro" type="button" hidden>Ver más</button>
+    </section>
+
+    <section id="categorias" class="vista" aria-label="Categorías" hidden>
+      <div class="encabezado"><div><p class="eyebrow">ORGANIZA TUS PLANTAS</p><h2>Categorías</h2></div></div>
+      <form id="nueva-categoria" class="fila">
+        <label class="campo-corto grande">Nueva<input id="categoria-nombre" maxlength="40" placeholder="Ej. Suculentas" autocomplete="off"></label>
+        <button class="boton" type="submit">Agregar</button>
+      </form>
+      <p id="categorias-estado" class="estado" role="status" aria-live="polite"></p>
+      <div id="categorias-lista" class="lista"></div>
+    </section>
+
     <section id="clima" class="vista" aria-label="Clima" hidden>
       <div class="encabezado"><div><p class="eyebrow">TAPACHULA, CHIAPAS</p><h2>Clima del vivero.</h2></div><button id="actualizar-clima" class="boton" type="button">Actualizar ↻</button></div>
       <p id="clima-estado" class="estado" role="status"></p>
@@ -68,21 +121,46 @@
     </section>
 
     <section id="calculadora" class="vista" aria-label="Calculadora" hidden>
-      <div class="encabezado"><div><p class="eyebrow">CUENTAS</p><h2>Calculadora.</h2></div></div>
+      <div class="encabezado"><div><p class="eyebrow">CUENTAS RÁPIDAS</p><h2>Calculadora.</h2></div></div>
       <div class="calc">
         <p id="calc-operacion" class="calc-operacion" aria-hidden="true"></p>
         <output id="calc-pantalla" class="calc-pantalla" aria-live="polite">0</output>
         <div id="calc-teclas" class="calc-teclas"></div>
       </div>
     </section>
+
+    <section id="respaldo" class="vista" aria-label="Respaldo" hidden>
+      <div class="encabezado"><div><p class="eyebrow">TUS DATOS</p><h2>Respaldo</h2></div></div>
+      <p class="nota">Todo vive en este dispositivo. Guarda un respaldo seguido, y siempre antes de actualizar la app.</p>
+      <div class="fila respaldo">
+        <button id="exportar" class="boton-claro" type="button">Guardar respaldo</button>
+        <button id="compartir" class="boton-claro" type="button" hidden>Enviar respaldo (Drive, WhatsApp…)</button>
+        <label class="boton-claro">Restaurar respaldo<input id="importar" type="file" accept="application/json,.json" hidden></label>
+      </div>
+      <p id="respaldo-estado" class="estado" role="status" aria-live="polite"></p>
+      <p id="proteccion" class="nota"></p>
+    </section>
   </main>
 
   <nav class="pestanas" aria-label="Secciones">
     <button type="button" data-vista="inventario" aria-current="page">🌱<span>Inventario</span></button>
+    <button type="button" data-vista="paquetes">📦<span>Paquetes</span></button>
     <button type="button" data-vista="pedidos">📋<span>Pedidos</span></button>
-    <button type="button" data-vista="clima">☀<span>Clima</span></button>
-    <button type="button" data-vista="calculadora">＋<span>Cuentas</span></button>
+    <button type="button" data-vista="estadisticas">📊<span>Estadísticas</span></button>
+    <button type="button" id="abrir-menu" aria-haspopup="dialog">☰<span>Menú</span></button>
   </nav>
+
+  <dialog id="menu" class="menu">
+    <h2>Menú</h2>
+    <div class="menu-lista">
+      <button type="button" data-vista="historial">🧾<span>Historial</span></button>
+      <button type="button" data-vista="categorias">🏷️<span>Categorías</span></button>
+      <button type="button" data-vista="clima">☀<span>Clima</span></button>
+      <button type="button" data-vista="calculadora">＋<span>Calculadora</span></button>
+      <button type="button" data-vista="respaldo">💾<span>Respaldo</span></button>
+    </div>
+    <button id="menu-cerrar" class="boton-claro" type="button">Cerrar</button>
+  </dialog>
 
   <dialog id="formulario">
     <form id="planta" method="dialog">
@@ -95,9 +173,8 @@
       </div>
       <label>Nombre común<input name="nombre" required maxlength="100"></label>
       <label>Nombre científico<input name="cientifico" maxlength="100"></label>
-      <label>Categoría
-        <select name="categoria"><option value="frutal">Frutal</option><option value="maderable">Maderable</option><option value="ornato">Ornato</option><option value="palmera">Palmera</option><option value="otra">Otra</option></select>
-      </label>
+      <label>Categoría <select name="categoria" id="form-categoria"></select></label>
+      <fieldset class="paquetes-campo"><legend>Paquetes</legend><div id="form-paquetes"></div></fieldset>
       <div class="dos">
         <label>Precio (MXN)<input name="precio" type="number" inputmode="decimal" min="0" step="0.01" value="0" required></label>
         <label>Costo (MXN)<input name="costo" type="number" inputmode="decimal" min="0" step="0.01" value="0" required></label>
@@ -120,10 +197,11 @@
     <form id="pedido" method="dialog">
       <h2 id="pedido-titulo">Nuevo pedido</h2>
       <label>Cliente<input name="cliente" required maxlength="80" autocomplete="off"></label>
+      <p class="nota">Planta · cantidad · precio de esta venta (puedes cambiarlo, por ejemplo para dar un descuento).</p>
       <div id="lineas" class="lineas"></div>
       <button id="otra-linea" class="boton-claro" type="button">+ Agregar otra planta</button>
       <label>Estado
-        <select name="estado"><option value="pendiente">Pendiente</option><option value="entregado">Entregado</option><option value="cancelado">Cancelado (devuelve el stock)</option></select>
+        <select name="estado"><option value="pendiente">Pendiente</option><option value="entregado">Entregado (cuenta como venta)</option><option value="cancelado">Cancelado (devuelve el stock)</option></select>
       </label>
       <label>Notas<textarea name="notas" rows="2" maxlength="500"></textarea></label>
       <p id="pedido-error" class="estado error" role="alert"></p>
@@ -133,6 +211,42 @@
         <button id="pedido-borrar" class="boton-claro peligro" type="button" hidden>Borrar pedido</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="form-paquete">
+    <form id="paquete" method="dialog">
+      <h2 id="paquete-titulo">Nuevo paquete</h2>
+      <label>Nombre<input name="nombre" required maxlength="60" placeholder="Ej. Nochebuenas" autocomplete="off"></label>
+      <label>Notas<textarea name="notas" rows="3" maxlength="1000"></textarea></label>
+      <p id="paquete-error" class="estado error" role="alert"></p>
+      <div class="fila">
+        <button class="boton" type="submit">Guardar</button>
+        <button id="paquete-cancelar" class="boton-claro" type="button">Cancelar</button>
+        <button id="paquete-borrar" class="boton-claro peligro" type="button" hidden>Borrar paquete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detalle-paquete">
+    <div class="encabezado">
+      <div><p class="eyebrow">PAQUETE</p><h2 id="paq-nombre"></h2></div>
+      <button id="paq-editar" class="boton-claro" type="button">Editar</button>
+    </div>
+    <p id="paq-notas" class="nota"></p>
+    <div id="paq-cuenta" class="resumen"></div>
+    <p id="paq-estimado" class="nota" hidden>Incluye ventas anteriores a la actualización, con precio y costo estimados al valor de hoy.</p>
+    <p class="nota">La cuenta suma todo el historial de las plantas que están en el paquete.</p>
+    <h3>Plantas del paquete</h3>
+    <div id="paq-plantas" class="lista"></div>
+    <div class="fila">
+      <select id="paq-existente" aria-label="Planta existente para agregar"></select>
+      <button id="paq-agregar" class="boton-claro" type="button">Agregar al paquete</button>
+    </div>
+    <button id="paq-nueva" class="boton" type="button">+ Planta nueva en este paquete</button>
+    <h3>Historial del paquete</h3>
+    <div id="paq-historial" class="lista"></div>
+    <button id="paq-mas" class="boton-claro" type="button" hidden>Ver más</button>
+    <button id="paq-cerrar" class="boton-claro" type="button">Cerrar</button>
   </dialog>
 </body>
 </html>

@@ -2,7 +2,7 @@ import * as db from './db.js';
 
 const $ = (s) => document.querySelector(s);
 const ULTIMO = 'palfor-ultimo-respaldo', SIN_RESPALDO = 'palfor-sin-respaldo', DIA = 864e5;
-const estado = $('#estado'), aviso = $('#aviso-respaldo');
+const estado = $('#respaldo-estado'), aviso = $('#aviso-respaldo');
 const avisar = (texto, error = false) => { estado.textContent = texto; estado.classList.toggle('error', error); };
 const puedeCompartir = !!navigator.canShare?.({ files: [new File([''], 'a.json', { type: 'application/json' })] });
 
@@ -49,12 +49,12 @@ $('#aviso-guardar').addEventListener('click', () => respaldar(puedeCompartir));
 $('#importar').addEventListener('change', async (e) => {
   const f = e.target.files[0];
   e.target.value = '';
-  if (!f || !confirm('Restaurar reemplaza TODO lo que hay en este dispositivo (plantas y pedidos) por el respaldo. Antes se descargará una copia de lo actual. ¿Continuar?')) return;
+  if (!f || !confirm('Restaurar reemplaza TODO lo que hay en este dispositivo (plantas, pedidos, paquetes e historial) por el respaldo. Antes se descargará una copia de lo actual. ¿Continuar?')) return;
   try {
     const datos = await db.leer(await f.text()); // si el archivo está mal, falla aquí sin tocar nada
     if ((await db.todas()).length + (await db.pedidos()).length) descargar(await archivo('palfor-antes-de-restaurar'));
     await db.reemplazar(datos);
-    avisar(`Respaldo restaurado: ${datos.plantas.length} plantas y ${datos.pedidos.length} pedidos.`);
+    avisar(`Respaldo restaurado: ${datos.plantas.length} plantas, ${datos.pedidos.length} pedidos y ${datos.paquetes.length} paquetes.`);
   } catch (err) { avisar(`No se pudo restaurar: ${err.message}`, true); }
 });
 

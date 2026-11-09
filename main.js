@@ -1,16 +1,31 @@
 import './inventario.js';
+import './paquetes.js';
 import './pedidos.js';
+import './estadisticas.js';
+import './historial.js';
+import './categorias.js';
 import './respaldo.js';
 import './clima.js';
 import './calculadora.js';
 
 const $ = (s) => document.querySelector(s);
 const vistas = [...document.querySelectorAll('.vista')];
-const botones = [...document.querySelectorAll('.pestanas button')];
-botones.forEach((b) => b.addEventListener('click', () => {
-  vistas.forEach((v) => { v.hidden = v.id !== b.dataset.vista; });
-  botones.forEach((o) => (o === b ? o.setAttribute('aria-current', 'page') : o.removeAttribute('aria-current')));
-}));
+const fijos = [...document.querySelectorAll('.pestanas button[data-vista]')];
+const menu = $('#menu'), botonMenu = $('#abrir-menu');
+const delMenu = new Set([...menu.querySelectorAll('[data-vista]')].map((b) => b.dataset.vista));
+
+// Barra de abajo = lo de todos los días; el menú ☰ guarda el resto. La pestaña ☰ se marca cuando se está en una vista del menú.
+function mostrar(id) {
+  vistas.forEach((v) => { v.hidden = v.id !== id; });
+  fijos.forEach((b) => (b.dataset.vista === id ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
+  if (delMenu.has(id)) botonMenu.setAttribute('aria-current', 'page'); else botonMenu.removeAttribute('aria-current');
+  scrollTo(0, 0);
+  dispatchEvent(new Event('palfor:vista')); // cada vista se carga solo cuando se muestra
+}
+document.querySelectorAll('[data-vista]').forEach((b) => b.addEventListener('click', () => { menu.close(); mostrar(b.dataset.vista); }));
+botonMenu.addEventListener('click', () => menu.showModal());
+$('#menu-cerrar').addEventListener('click', () => menu.close());
+menu.addEventListener('click', (e) => { if (e.target === menu) menu.close(); });
 
 const conexion = document.querySelector('#conexion');
 const mostrarConexion = () => { conexion.textContent = navigator.onLine ? 'En línea' : 'Sin conexión'; conexion.classList.toggle('sin', !navigator.onLine); };
