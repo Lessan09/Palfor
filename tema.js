@@ -4,10 +4,10 @@ import { $, el } from './ui.js';
 const CLAVE = 'palfor-tema';
 // [id, nombre, descripción, muestras: fondo · superficie · acento]
 const TEMAS = [
-  ['auto', 'Automático', 'Sigue al teléfono', ['#f4f3ec', '#121a15', '#668957']],
-  ['claro', 'Bosque', 'Claro y verde', ['#f4f3ec', '#fbfaf5', '#668957']],
-  ['oceano', 'Océano', 'Claro y azul', ['#eef3f6', '#f7fafc', '#3b82a6']],
-  ['atardecer', 'Atardecer', 'Claro y cálido', ['#f7efe8', '#fdf8f3', '#d9693f']],
+  ['auto', 'Automático', 'Sigue al teléfono', ['#f4f3ec', '#121a15', '#58764b']],
+  ['claro', 'Bosque', 'Claro y verde', ['#f4f3ec', '#fbfaf5', '#58764b']],
+  ['oceano', 'Océano', 'Claro y azul', ['#eef3f6', '#f7fafc', '#347494']],
+  ['atardecer', 'Atardecer', 'Claro y cálido', ['#f7efe8', '#fdf8f3', '#ac5332']],
   ['oscuro', 'Oscuro', 'Verde suave', ['#121a15', '#1a241d', '#7fb069']],
   ['tron', 'Tron', 'Neón cian', ['#02070b', '#06121a', '#00e5ff']],
   ['synthwave', 'Synthwave', 'Neón magenta', ['#0b0220', '#150636', '#ff2bd6']]

@@ -7,15 +7,15 @@ const avisar = (texto, error = false) => { estado.textContent = texto; estado.cl
 async function cargar() {
   const [categorias, plantas] = await Promise.all([db.categorias(), db.todas()]);
   lista.replaceChildren(...[...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map((c) => {
-    const usos = plantas.filter((p) => p.categoria === c.clave).length;
+    const usan = plantas.filter((p) => p.categoria === c.clave), archivadas = usan.filter((p) => p.archivada).length, usos = usan.length;
     const art = el('article', '', 'planta-paq');
     const cuerpo = el('div');
-    cuerpo.append(el('h4', c.nombre), el('p', `${usos} planta(s)`, 'datos'));
+    cuerpo.append(el('h4', c.nombre), el('p', `${usos - archivadas} planta(s)${archivadas ? ` · ${archivadas} archivada(s)` : ''}`, 'datos'));
     const acciones = el('div', '', 'acciones');
     const boton = (texto, accion, clase = '') => { const b = el('button', texto, clase); b.type = 'button'; b.addEventListener('click', accion); return b; };
     const borrar = boton('Borrar', () => intentar(() => db.borrarCategoria(c.clave), 'Categoría borrada.'), 'peligro');
     borrar.disabled = usos > 0;
-    borrar.title = usos ? 'Tiene plantas: cámbiales la categoría primero.' : '';
+    borrar.title = usos ? 'Tiene plantas (también cuentan las archivadas): cámbiales la categoría o bórralas primero.' : '';
     acciones.append(boton('Renombrar', () => {
       const nombre = prompt('Nuevo nombre de la categoría:', c.nombre)?.trim();
       if (nombre && nombre !== c.nombre) intentar(() => db.renombrarCategoria(c.clave, nombre), 'Categoría renombrada.');

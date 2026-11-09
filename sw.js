@@ -1,5 +1,5 @@
 // Guarda la app en el dispositivo para abrirla sin conexión. Al cambiar cualquier archivo, sube la versión.
-const VERSION = 'palfor-10';
+const VERSION = 'palfor-11';
 const ARCHIVOS = ['./', 'index.html', 'estilos.css', 'main.js', 'db.js', 'inventario.js', 'pedidos.js', 'respaldo.js', 'paquetes.js', 'estadisticas.js', 'historial.js', 'categorias.js', 'logica.js', 'ui.js', 'tema.js', 'clima.js', 'calculadora.js', 'calc-logica.js',
   'manifest.webmanifest', 'iconos/icono-192.png', 'iconos/icono-512.png', 'iconos/icono-maskable-512.png', 'iconos/logo-orquidea.png'];
 

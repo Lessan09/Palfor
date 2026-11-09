@@ -1,6 +1,6 @@
 // node app/logica.test.mjs
 import assert from 'node:assert/strict';
-import { agrupar, completarPedidos, cuentaPaquete, mesDe, movimientosIniciales, resumenInventario, total, ventas } from './logica.js';
+import { agrupar, completarPedidos, cuentaPaquete, impactoBorrado, mesDe, movimientosIniciales, nombresRepetidos, normalizar, resumenInventario, total, ventas } from './logica.js';
 
 const plantas = [
   { id: 1, nombre: 'Nochebuena roja', existencias: 6, costo: 10, precio: 25, paquetes: [1] },
@@ -57,4 +57,12 @@ assert.equal(cuentaPaquete({ id: 7 }, plantas, movs, pedidos).recuperado, 0);   
 // Inventario: lo archivado no cuenta
 const r = resumenInventario(plantas);
 assert.deepEqual(r, { total: 2, agotadas: 1, pocas: 0, costo: 60, venta: 150 });
+// Borrar una planta: qué se llevaría consigo
+const imp = impactoBorrado(1, movs, pedidos);
+assert.deepEqual(imp, { movimientos: 3, pedidos: 3, entregados: 1, pendientes: 1, vendido: 75, quedanVacios: 2 });
+assert.deepEqual(impactoBorrado(99, movs, pedidos), { movimientos: 0, pedidos: 0, entregados: 0, pendientes: 0, vendido: 0, quedanVacios: 0 });
+
+// Nombres repetidos (ignora mayúsculas, acentos y espacios de los lados no: solo mayúsculas y acentos)
+assert.deepEqual([...nombresRepetidos([{ nombre: 'Nochebuena roja' }, { nombre: 'nochebuena ROJA' }, { nombre: 'Limón' }, { nombre: 'Limon' }, { nombre: 'Rosal' }])].sort(), ['limon', 'nochebuena roja']);
+assert.equal(normalizar('ÁrBol'), 'arbol');
 console.log('logica.js: todo bien');

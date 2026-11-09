@@ -1,5 +1,5 @@
 // Datos en IndexedDB del propio dispositivo. Las fotos se guardan como Blob dentro de cada planta.
-import { completarPedidos, movimientosIniciales } from './logica.js';
+import { completarPedidos, impactoBorrado, movimientosIniciales } from './logica.js';
 
 const PLANTAS = 'plantas', PEDIDOS = 'pedidos', PAQUETES = 'paquetes', CATEGORIAS = 'categorias', MOVS = 'movimientos';
 const TODAS = [PLANTAS, PEDIDOS, PAQUETES, CATEGORIAS, MOVS];
@@ -25,8 +25,10 @@ function abrir() {
         ped.getAll().onsuccess = (ev2) => completarPedidos(ev2.target.result, plantas).forEach((p) => ped.put(p));
       };
     };
+    peticion.onblocked = () => dispatchEvent(new Event('palfor:bloqueada')); // otra ventana de Palfor sigue abierta con la versión anterior
     peticion.onsuccess = () => {
       const bd = peticion.result;
+      dispatchEvent(new Event('palfor:desbloqueada'));
       bd.onversionchange = () => { bd.close(); abierta = undefined; }; // otra pestaña con una versión más nueva: no la bloqueamos
       ok(bd);
     };
@@ -65,12 +67,24 @@ async function operar(trabajo) {
 // ---- Plantas ----
 export const todas = () => transaccion('readonly', [PLANTAS], (t) => t.objectStore(PLANTAS).getAll());
 
-// Toda variación de existencias deja un movimiento: sube = entrada, baja = baja. Se compara con lo guardado, no con lo que ve la pantalla.
-export const guardarPlanta = (planta) => transaccion('readwrite', [PLANTAS, MOVS], (t) => {
-  const s = t.objectStore(PLANTAS), m = t.objectStore(MOVS);
-  const registrar = (id, delta) => delta && m.add({ fecha: ahora(), plantaId: id, planta: planta.nombre, tipo: delta > 0 ? 'entrada' : 'baja', cantidad: delta, precio: planta.precio, costo: planta.costo });
-  if (planta.id === undefined) s.add(planta).onsuccess = (e) => registrar(e.target.result, planta.existencias);
-  else s.get(planta.id).onsuccess = (e) => { registrar(planta.id, planta.existencias - (e.target.result?.existencias ?? 0)); s.put(planta); };
+// Toda variación de existencias deja un movimiento. Opciones:
+//  base      = existencias que tenía el formulario al abrirse: se suma solo la diferencia sobre lo guardado ahora (no pisa cambios hechos mientras tanto)
+//  tipo      = 'entrada' (compra), 'baja' o 'correccion' (error de captura: no cuenta como inversión)
+//  recostear = el costo cambió y se corrige también en las compras y ventas anteriores de esta planta
+export const guardarPlanta = (planta, { base, tipo, recostear } = {}) => transaccion('readwrite', [PLANTAS, MOVS, PEDIDOS], (t) => {
+  const s = t.objectStore(PLANTAS), m = t.objectStore(MOVS), ped = t.objectStore(PEDIDOS);
+  const anotar = (id, delta) => delta && m.add({ fecha: ahora(), plantaId: id, planta: planta.nombre, tipo: tipo ?? (delta > 0 ? 'entrada' : 'baja'), cantidad: delta, precio: planta.precio, costo: planta.costo });
+  if (planta.id === undefined) { s.add(planta).onsuccess = (e) => anotar(e.target.result, planta.existencias); return; }
+  s.get(planta.id).onsuccess = (e) => {
+    const previa = e.target.result?.existencias ?? 0;
+    const nuevo = Math.max(0, previa + planta.existencias - (base ?? previa));
+    s.put({ ...planta, existencias: nuevo });
+    anotar(planta.id, nuevo - previa);
+    if (!recostear) return;
+    m.getAll().onsuccess = (ev) => ev.target.result.filter((x) => x.plantaId === planta.id && (x.tipo === 'inicial' || x.tipo === 'entrada')).forEach((x) => m.put({ ...x, costo: planta.costo }));
+    ped.getAll().onsuccess = (ev) => ev.target.result.filter((p) => p.lineas.some((l) => l.plantaId === planta.id))
+      .forEach((p) => ped.put({ ...p, lineas: p.lineas.map((l) => (l.plantaId === planta.id ? { ...l, costo: planta.costo } : l)) }));
+  };
 });
 
 // Botones + y −: lee la planta dentro de la transacción para no pisar cambios hechos desde otra pantalla.
@@ -89,6 +103,21 @@ export const ajustarStock = (id, delta) => transaccion('readwrite', [PLANTAS, MO
 export const actualizarPlanta = (id, cambiar) => transaccion('readwrite', [PLANTAS], (t) => {
   const s = t.objectStore(PLANTAS);
   s.get(id).onsuccess = (e) => { if (e.target.result) s.put({ ...e.target.result, ...cambiar(e.target.result) }); };
+});
+
+// Borrar para siempre: la planta sale de TODAS las cuentas (historial, líneas de pedidos y ventas). Los pedidos que se queden sin plantas se borran.
+export async function impactoPlanta(id) {
+  const [movs, peds] = await Promise.all([todosMovimientos(), pedidos()]);
+  return impactoBorrado(id, movs, peds);
+}
+export const borrarPlanta = (id) => transaccion('readwrite', [PLANTAS, PEDIDOS, MOVS], (t) => {
+  t.objectStore(PLANTAS).delete(id);
+  const m = t.objectStore(MOVS), ped = t.objectStore(PEDIDOS);
+  m.getAll().onsuccess = (e) => e.target.result.filter((x) => x.plantaId === id).forEach((x) => m.delete(x.id));
+  ped.getAll().onsuccess = (e) => e.target.result.filter((p) => p.lineas.some((l) => l.plantaId === id)).forEach((p) => {
+    const resto = p.lineas.filter((l) => l.plantaId !== id);
+    if (resto.length) ped.put({ ...p, lineas: resto }); else ped.delete(p.id);
+  });
 });
 
 // ---- Paquetes ----
@@ -113,8 +142,8 @@ export async function agregarCategoria(nombre) {
 }
 export const renombrarCategoria = (clave, nombre) => transaccion('readwrite', [CATEGORIAS], (t) => t.objectStore(CATEGORIAS).put({ clave, nombre: nombre.trim() }));
 export async function borrarCategoria(clave) {
-  const usadas = (await todas()).filter((p) => p.categoria === clave).length;
-  if (usadas) throw new Error(`No se puede borrar: ${usadas} planta(s) la usan.`);
+  const usan = (await todas()).filter((p) => p.categoria === clave), archivadas = usan.filter((p) => p.archivada).length;
+  if (usan.length) throw new Error(`No se puede borrar: la usan ${usan.length - archivadas} planta(s) activas y ${archivadas} archivadas. Cámbiales la categoría o bórralas (Inventario → Mostrar: Archivadas).`);
   await transaccion('readwrite', [CATEGORIAS], (t) => t.objectStore(CATEGORIAS).delete(clave));
 }
 
@@ -147,12 +176,13 @@ export const pedidos = () => transaccion('readonly', [PEDIDOS], (t) => t.objectS
 // Mientras no esté cancelado, aparta stock. Crear, editar, cambiar de estado o borrar pasan por aquí: se compara lo apartado ANTES
 // con lo de DESPUÉS y solo se mueve la diferencia (y se anota en el historial), todo en una transacción.
 const aparta = (p) => (p && p.estado !== 'cancelado' ? p.lineas : []);
-const cambiarPedido = (id, despues) => operar((plantas, ped, movs, fallar) => {
+// `sinStock`: el pedido se borra/cancela pero las plantas NO regresan al inventario (ya se entregaron y no volvieron).
+const cambiarPedido = (id, despues, sinStock = false) => operar((plantas, ped, movs, fallar) => {
   if (despues && (!despues.lineas?.length || despues.lineas.some((l) => !Number.isInteger(l.cantidad) || l.cantidad < 1))) return fallar('Cada pedido necesita al menos una planta con cantidad entera de 1 o más.');
   if (despues && despues.lineas.some((l) => !Number.isFinite(l.precio) || l.precio < 0 || !Number.isFinite(l.costo) || l.costo < 0)) return fallar('El precio de cada planta debe ser cero o más.');
   const aplicar = (antes) => {
     const dif = new Map(); // plantaId → piezas que hay que descontar de más (negativo = se devuelven)
-    for (const [lineas, signo] of [[aparta(antes), -1], [aparta(despues), 1]]) for (const l of lineas) dif.set(l.plantaId, (dif.get(l.plantaId) ?? 0) + signo * l.cantidad);
+    if (!sinStock) for (const [lineas, signo] of [[aparta(antes), -1], [aparta(despues), 1]]) for (const l of lineas) dif.set(l.plantaId, (dif.get(l.plantaId) ?? 0) + signo * l.cantidad);
     const guardado = despues ? ped.put(despues) : ped.delete(id); // primero el pedido, así su id ya existe cuando se anotan los movimientos
     const fecha = ahora();
     for (const [plantaId, d] of dif) {
@@ -171,8 +201,8 @@ const cambiarPedido = (id, despues) => operar((plantas, ped, movs, fallar) => {
   ped.get(id).onsuccess = (e) => (e.target.result ? aplicar(e.target.result) : fallar('El pedido ya no existe.'));
 });
 // La venta cuenta desde que el pedido pasa a "entregado": ahí se anota la fecha de entrega (y se quita si se reabre o cancela).
-export const guardarPedido = ({ fechaEntrega, ...pedido }) => cambiarPedido(pedido.id, pedido.estado === 'entregado' ? { ...pedido, fechaEntrega: fechaEntrega ?? ahora() } : pedido);
-export const borrarPedido = (id) => cambiarPedido(id, null);
+export const guardarPedido = ({ fechaEntrega, ...pedido }, { sinStock } = {}) => cambiarPedido(pedido.id, pedido.estado === 'entregado' ? { ...pedido, fechaEntrega: fechaEntrega ?? ahora() } : pedido, sinStock);
+export const borrarPedido = (id, { sinStock } = {}) => cambiarPedido(id, null, sinStock);
 
 // ---- Respaldo ----
 // Las fotos viajan como data URL dentro de un JSON, con una huella SHA-256 para detectar archivos dañados.

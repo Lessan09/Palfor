@@ -21,12 +21,12 @@ async function cargar() {
   $('#est-estimado').hidden = !v.some((x) => x.estimado);
 
   const vacio = 'Sin ventas en este periodo. Las ventas cuentan cuando un pedido pasa a “Entregado”.';
-  filas($('#est-top'), agrupar(v, (x) => x.planta).sort((a, b) => b.piezas - a.piezas).slice(0, 5).map((g) => [g.clave, `${g.piezas} · ${moneda.format(g.ingreso)}`]), vacio);
+  filas($('#est-top'), agrupar(v, (x) => x.plantaId).sort((a, b) => b.piezas - a.piezas).slice(0, 5).map((g) => [v.find((x) => x.plantaId === g.clave).planta, `${g.piezas} · ${moneda.format(g.ingreso)}`]), vacio);
   const categoriaDe = new Map(plantas.map((p) => [p.id, p.categoria]));
   const nombreCat = (clave) => categorias.find((c) => c.clave === clave)?.nombre ?? clave ?? 'Sin categoría';
   filas($('#est-categorias'), agrupar(v, (x) => nombreCat(categoriaDe.get(x.plantaId))).sort((a, b) => b.ingreso - a.ingreso).map((g) => [g.clave, `${g.piezas} · ${moneda.format(g.ingreso)}`]), vacio);
   filas($('#est-paquetes'), paquetes.map((pq) => ({ pq, c: cuentaPaquete(pq, plantas, movs, pedidos) })).sort((a, b) => b.c.vendido - a.c.vendido)
-    .map(({ pq, c }) => [pq.nombre, `vendido ${moneda.format(c.vendido)} · ganancia ${moneda.format(c.ganancia)} · quedan ${c.quedan}`]), 'Todavía no hay paquetes. (Aquí se cuenta todo el tiempo, sin importar el periodo.)');
+    .map(({ pq, c }) => [pq.nombre, `vendido ${moneda.format(c.vendido)} · ganancia ${moneda.format(c.ganancia)} · quedan ${c.quedan}`]), 'Todavía no hay paquetes.');
   filas($('#est-meses'), agrupar(todas, (x) => mesDe(x.fecha)).sort((a, b) => b.clave.localeCompare(a.clave)).slice(0, 12).map((g) => {
     const [a, m] = g.clave.split('-').map(Number);
     return [mesLargo.format(new Date(a, m - 1, 1)), `${g.piezas} · ${moneda.format(g.ingreso)} · ganancia ${moneda.format(g.ganancia)}`];

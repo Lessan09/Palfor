@@ -1,6 +1,6 @@
 import * as db from './db.js';
 import { $, el, listaPaginada, moneda, normalizar, perezosa } from './ui.js';
-import { cuentaPaquete } from './logica.js';
+import { cuentaPaquete, nombresRepetidos } from './logica.js';
 
 const contenedor = $('#burbujas'), estado = $('#paquetes-estado'), detalleDlg = $('#detalle-paquete'), formDlg = $('#form-paquete'), forma = $('#paquete');
 let plantas = [], paquetes = [], urls = [], abierto = null, editando = null; // abierto = id del paquete cuyo detalle se está viendo
@@ -75,8 +75,9 @@ async function detalle() {
   });
   $('#paq-plantas').replaceChildren(...(filas.length ? filas : [el('p', 'Este paquete está vacío: agrega plantas existentes o crea una nueva.', 'estado')]));
 
+  const repetidos = nombresRepetidos(plantas);
   const disponibles = plantas.filter((p) => !p.archivada && !p.paquetes?.includes(pq.id)).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-  $('#paq-existente').replaceChildren(...(disponibles.length ? disponibles.map((p) => new Option(`${p.nombre} (${p.existencias})`, String(p.id))) : [new Option('No hay más plantas para agregar', '')]));
+  $('#paq-existente').replaceChildren(...(disponibles.length ? disponibles.map((p) => new Option(`${p.nombre}${repetidos.has(normalizar(p.nombre)) ? ` · ${moneda.format(p.precio)}${p.lote ? ` · lote ${p.lote}` : ''}` : ''} (${p.existencias})`, String(p.id))) : [new Option('No hay más plantas para agregar', '')]));
   $('#paq-agregar').disabled = !disponibles.length;
 
   const ids = new Set(c.detalle.map((d) => d.planta.id));

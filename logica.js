@@ -1,5 +1,7 @@
 // Cálculos puros (sin pantalla ni base de datos): cuentas de paquetes, estadísticas y los datos que se completan al actualizar.
 export const POCAS = 5;
+export const normalizar = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
 export const nivel = (n) => (n <= 0 ? 'agotada' : n <= POCAS ? 'pocas' : 'bien');
 
 // El historial empieza con lo que ya había: un movimiento "inicial" por cada planta con existencias.
@@ -68,3 +70,24 @@ export function cuentaPaquete(paquete, plantas, movs, pedidos) {
     estimado: todas.some((x) => x.estimado && miembros.some((p) => p.id === x.plantaId))
   };
 }
+
+// Qué se lleva consigo borrar una planta para siempre (se usa para avisar ANTES de hacerlo).
+export function impactoBorrado(id, movs, pedidos) {
+  const con = pedidos.filter((p) => p.lineas.some((l) => l.plantaId === id));
+  const entregados = con.filter((p) => p.estado === 'entregado');
+  return {
+    movimientos: movs.filter((m) => m.plantaId === id).length,
+    pedidos: con.length,
+    entregados: entregados.length,
+    pendientes: con.filter((p) => p.estado === 'pendiente').length,
+    vendido: entregados.reduce((s, p) => s + p.lineas.filter((l) => l.plantaId === id).reduce((a, l) => a + l.cantidad * l.precio, 0), 0),
+    quedanVacios: con.filter((p) => p.lineas.every((l) => l.plantaId === id)).length
+  };
+}
+
+// Nombres que se repiten entre plantas (ignorando mayúsculas y acentos): en los selectores hay que distinguirlas.
+export const nombresRepetidos = (plantas) => {
+  const cuenta = new Map();
+  plantas.forEach((p) => cuenta.set(normalizar(p.nombre), (cuenta.get(normalizar(p.nombre)) ?? 0) + 1));
+  return new Set([...cuenta].filter(([, n]) => n > 1).map(([k]) => k));
+};

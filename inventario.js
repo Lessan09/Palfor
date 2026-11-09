@@ -1,5 +1,5 @@
 import * as db from './db.js';
-import { $, el, moneda, normalizar, perezosa } from './ui.js';
+import { $, el, moneda, normalizar, perezosa, preguntar } from './ui.js';
 import { nivel } from './logica.js';
 
 const lista = $('#lista'), estado = $('#estado'), dialogo = $('#formulario'), forma = $('#planta');
@@ -23,7 +23,7 @@ function llenarFiltros() {
   sel.replaceChildren(new Option('Todos', ''), ...[...paquetes].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map((p) => new Option(p.nombre, String(p.id))));
   sel.value = [...sel.options].some((o) => o.value === actual) ? actual : '';
   if (categoriaActiva && !categorias.some((c) => c.clave === categoriaActiva)) categoriaActiva = '';
-  const activas = plantas.filter((p) => !p.archivada);
+  const enVista = plantas.filter((p) => !!p.archivada === ($('#mostrar').value === 'archivadas')); // los conteos siguen a lo que se está viendo
   const chip = (clave, texto, n) => {
     const b = el('button', `${texto} · ${n}`, 'chip');
     b.type = 'button';
@@ -31,7 +31,7 @@ function llenarFiltros() {
     b.addEventListener('click', () => { categoriaActiva = clave; llenarFiltros(); dibujar(); });
     return b;
   };
-  $('#chips').replaceChildren(chip('', 'Todas', activas.length), ...[...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map((c) => chip(c.clave, c.nombre, activas.filter((p) => p.categoria === c.clave).length)));
+  $('#chips').replaceChildren(chip('', 'Todas', enVista.length), ...[...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).map((c) => chip(c.clave, c.nombre, enVista.filter((p) => p.categoria === c.clave).length)));
 }
 
 function dibujar() {
@@ -91,7 +91,7 @@ function tarjeta(p) {
   const boton = (texto, accion, clase = '') => { const b = el('button', texto, clase); b.type = 'button'; b.addEventListener('click', accion); return b; };
   if (p.archivada) {
     fila.append(el('strong', String(p.existencias)));
-    acciones.append(boton('Restaurar', () => archivar(p, false)));
+    acciones.append(boton('Restaurar', () => archivar(p, false)), boton('Borrar', () => borrarDefinitivo(p), 'peligro'));
   } else {
     const menos = boton('−', () => ajustar(p, -1)), mas = boton('+', () => ajustar(p, 1));
     menos.setAttribute('aria-label', `Quitar una ${p.nombre}`);
@@ -120,6 +120,20 @@ async function archivar(p, si) {
   try { await db.actualizarPlanta(p.id, () => ({ archivada: si })); avisar(si ? 'Planta archivada.' : 'Planta restaurada.'); } catch (e) { avisar(`No se pudo guardar: ${e.message}`, true); }
 }
 
+// Borrar para siempre: la planta sale de todas las cuentas. Se avisa EXACTAMENTE qué se lleva consigo antes de hacerlo.
+async function borrarDefinitivo(p) {
+  const i = await db.impactoPlanta(p.id);
+  const puntos = [`• Sus ${p.existencias} planta(s) en existencia dejan de contar.`];
+  if (i.movimientos) puntos.push(`• Se borran sus ${i.movimientos} movimiento(s) del historial.`);
+  if (i.pedidos) puntos.push(`• Se quita de ${i.pedidos} pedido(s): ${i.entregados} entregado(s)${i.entregados ? ` (ventas por ${moneda.format(i.vendido)} que dejarán de contarse)` : ''} y ${i.pendientes} pendiente(s).`);
+  if (i.quedanVacios) puntos.push(`• ${i.quedanVacios} pedido(s) se quedarían sin plantas y también se borran.`);
+  const r = await preguntar(`¿Borrar «${p.nombre}» para siempre?`, `${puntos.join('\n')}\n\nNo se puede deshacer. Si solo quieres que deje de verse, mejor archívala: así se conserva su historial.`,
+    [['Borrar para siempre', 'borrar', 'boton peligro'], ...(p.archivada ? [] : [['Mejor archivarla', 'archivar']]), ['No, volver', null]]);
+  if (r === 'archivar') { dialogo.open && dialogo.close(); return archivar(p, true); }
+  if (r !== 'borrar') return;
+  try { await db.borrarPlanta(p.id); dialogo.open && dialogo.close(); avisar(`«${p.nombre}» se borró para siempre.`); } catch (e) { avisar(`No se pudo borrar: ${e.message}`, true); }
+}
+
 // ---- Formulario y foto ----
 function mostrarFoto(blob) {
   if (previa.src) URL.revokeObjectURL(previa.src);
@@ -137,6 +151,7 @@ async function abrirFormulario(p = null, paqueteId = null) {
   forma.reset();
   $('#form-titulo').textContent = p ? 'Editar planta' : 'Nueva planta';
   $('#form-error').textContent = '';
+  $('#planta-borrar').hidden = !p;
   const opciones = categorias.map((c) => new Option(c.nombre, c.clave));
   if (p?.categoria && !categorias.some((c) => c.clave === p.categoria)) opciones.push(new Option(p.categoria, p.categoria));
   $('#form-categoria').replaceChildren(...opciones);
@@ -191,13 +206,36 @@ forma.addEventListener('submit', async (e) => {
     : [planta.precio, planta.costo, planta.existencias].some((n) => !Number.isFinite(n) || n < 0) ? 'Precio, costo y existencias deben ser cero o más.'
     : planta.lote && otras.some((p) => p.id !== planta.id && normalizar(p.lote) === normalizar(planta.lote)) ? 'Ya existe una planta con ese código de lote.' : '';
   if (error) { $('#form-error').textContent = error; return; }
-  try { await db.guardarPlanta(planta); dialogo.close(); avisar('Planta guardada.'); } catch (err) { $('#form-error').textContent = `No se pudo guardar: ${err.message}`; }
+
+  // Antes de guardar, se aclara lo que el número solo no dice (cada pregunta deja volver al formulario).
+  const base = editando?.existencias, delta = editando ? planta.existencias - base : 0;
+  const igual = otras.find((p) => p.id !== planta.id && normalizar(p.nombre) === normalizar(planta.nombre));
+  if (igual && await preguntar('Ya tienes una planta con ese nombre', `«${igual.nombre}» ya existe (${igual.existencias} en existencia${igual.lote ? `, lote ${igual.lote}` : ''}). Si son plantas distintas (otro tamaño o color), ponle un nombre que las distinga, por ejemplo «${planta.nombre} grande».`,
+    [['Guardar de todos modos', 'si', 'boton'], ['Volver y cambiar el nombre', null]]) !== 'si') return;
+  if (planta.costo === 0 && (!editando || editando.costo > 0 || delta > 0) && await preguntar('La planta no tiene costo', 'Sin costo no se puede calcular cuánto invertiste ni cuánto ganas con esta planta.',
+    [['Guardar sin costo', 'si'], ['Volver y ponerlo', null]]) !== 'si') return;
+  let recostear = false, tipo;
+  if (editando && planta.costo !== editando.costo) {
+    const r = await preguntar('Cambiaste el costo', `Antes: ${moneda.format(editando.costo)} · Ahora: ${moneda.format(planta.costo)}\n\n¿Cuál era el costo correcto de las compras y ventas que ya registraste de esta planta?`,
+      [['Corregir también lo anterior (me equivoqué)', 'si', 'boton'], ['Solo de ahora en adelante (el costo cambió)', 'no'], ['Volver', null]]);
+    if (!r) return;
+    recostear = r === 'si';
+  }
+  if (editando && delta) {
+    const r = await preguntar(`Cambiaste las existencias (${delta > 0 ? '+' : '−'}${Math.abs(delta)})`, `De ${base} a ${planta.existencias}. ¿Qué fue?`,
+      [delta > 0 ? ['Compré o llegaron más plantas', 'entrada', 'boton'] : ['Se murieron, se perdieron o se regalaron', 'baja', 'boton'], ['Es una corrección (me equivoqué al capturar)', 'correccion'], ['Volver', null]]);
+    if (!r) return;
+    tipo = r;
+  }
+  try { await db.guardarPlanta(planta, { base, tipo, recostear }); dialogo.close(); avisar('Planta guardada.'); } catch (err) { $('#form-error').textContent = `No se pudo guardar: ${err.message}`; }
 });
+$('#planta-borrar').addEventListener('click', () => borrarDefinitivo(editando));
 $('#cancelar').addEventListener('click', () => dialogo.close());
 dialogo.addEventListener('close', () => { if (previa.src) URL.revokeObjectURL(previa.src); });
 
 $('#nueva').addEventListener('click', () => abrirFormulario());
 addEventListener('palfor:nueva-planta', (e) => abrirFormulario(null, e.detail?.paqueteId));
-for (const id of ['#agrupar', '#mostrar', '#filtro-paquete']) $(id).addEventListener('change', dibujar);
+for (const id of ['#agrupar', '#filtro-paquete']) $(id).addEventListener('change', dibujar);
+$('#mostrar').addEventListener('change', () => { llenarFiltros(); dibujar(); });
 $('#buscar').addEventListener('input', dibujar);
 perezosa('inventario', cargar, (e) => avisar(`No se pudo abrir los datos de este dispositivo: ${e.message}`, true));

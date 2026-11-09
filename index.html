@@ -21,6 +21,7 @@
   </header>
 
   <main>
+    <div id="aviso-bloqueo" class="aviso" role="alert" hidden>Palfor se está actualizando, pero hay otra ventana de Palfor abierta. Ciérrala (o cierra la app por completo) y vuelve a abrirla.</div>
     <div id="aviso-respaldo" class="aviso aviso-respaldo" role="alert" hidden>
       <span></span><button id="aviso-guardar" class="boton-claro" type="button">Guardar respaldo ahora</button>
     </div>
@@ -44,6 +45,7 @@
           <select id="mostrar"><option value="">Activas</option><option value="archivadas">Archivadas</option></select>
         </label>
       </div>
+      <p class="nota">Los botones + y − ajustan las existencias (compras y bajas). Para registrar una venta usa <b>Pedidos</b>.</p>
       <div id="lista" class="lista"></div>
       <p id="estado" class="estado" role="status" aria-live="polite"></p>
     </section>
@@ -87,6 +89,7 @@
       <h3>Por categoría</h3>
       <div id="est-categorias" class="lista-datos"></div>
       <h3>Por paquete</h3>
+      <p class="nota">Todo el tiempo, sin importar el periodo. Una planta que está en varios paquetes cuenta en cada uno, por eso la suma puede pasar del total.</p>
       <div id="est-paquetes" class="lista-datos"></div>
       <h3>Mes por mes</h3>
       <div id="est-meses" class="lista-datos"></div>
@@ -158,6 +161,12 @@
     <button type="button" data-vista="estadisticas">📊<span>Estadísticas</span></button>
   </nav>
 
+  <dialog id="pregunta" class="pregunta">
+    <h2 id="pregunta-titulo"></h2>
+    <p id="pregunta-texto" class="pregunta-texto"></p>
+    <div id="pregunta-botones" class="pregunta-botones"></div>
+  </dialog>
+
   <dialog id="menu" class="menu">
     <h2>Menú</h2>
     <div class="menu-lista">
@@ -198,6 +207,7 @@
       <div class="fila">
         <button class="boton" type="submit">Guardar</button>
         <button id="cancelar" class="boton-claro" type="button">Cancelar</button>
+        <button id="planta-borrar" class="boton-claro peligro" type="button" hidden>Borrar definitivamente</button>
       </div>
     </form>
   </dialog>
@@ -206,9 +216,10 @@
     <form id="pedido" method="dialog">
       <h2 id="pedido-titulo">Nuevo pedido</h2>
       <label>Cliente<input name="cliente" required maxlength="80" autocomplete="off"></label>
-      <p class="nota">Planta · cantidad · precio de esta venta (puedes cambiarlo, por ejemplo para dar un descuento).</p>
+      <p class="nota">Por cada planta escribe <b>cuántas piezas</b> lleva el pedido y <b>a qué precio vendes cada pieza</b> (se llena con el precio de la planta; cámbialo si das descuento).</p>
       <div id="lineas" class="lineas"></div>
       <button id="otra-linea" class="boton-claro" type="button">+ Agregar otra planta</button>
+      <p id="pedido-total" class="total-pedido" aria-live="polite"></p>
       <label>Estado
         <select name="estado"><option value="pendiente">Pendiente</option><option value="entregado">Entregado (cuenta como venta)</option><option value="cancelado">Cancelado (devuelve el stock)</option></select>
       </label>
@@ -244,7 +255,7 @@
     <p id="paq-notas" class="nota"></p>
     <div id="paq-cuenta" class="resumen"></div>
     <p id="paq-estimado" class="nota" hidden>Incluye ventas anteriores a la actualización, con precio y costo estimados al valor de hoy.</p>
-    <p class="nota">La cuenta suma todo el historial de las plantas que están en el paquete.</p>
+    <p class="nota">La cuenta suma todo el historial de las plantas del paquete. En plantas anteriores a la actualización, lo invertido parte de lo que había ese día.</p>
     <h3>Plantas del paquete</h3>
     <div id="paq-plantas" class="lista"></div>
     <div class="fila">

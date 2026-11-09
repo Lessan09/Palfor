@@ -2,8 +2,27 @@
 export const $ = (s) => document.querySelector(s);
 export const el = (tag, texto = '', clase = '') => Object.assign(document.createElement(tag), { textContent: texto, className: clase });
 export const moneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
-export const normalizar = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-export const fechaCorta = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+export { normalizar } from './logica.js';
+const conAnio = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const sinAnio = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+// El año solo aparece cuando no es el actual, para que "5 dic" no se confunda con el del año pasado.
+export const fechaCorta = { format: (f) => (f.getFullYear() === new Date().getFullYear() ? sinAnio : conAnio).format(f) };
+
+// Pregunta con varias opciones claras (mejor que confirm: aceptar/cancelar no explica qué pasa en cada caso).
+// botones = [[texto, valor, clase?]]; devuelve el valor elegido o null si se cierra sin elegir.
+export function preguntar(titulo, texto, botones) {
+  const d = $('#pregunta');
+  $('#pregunta-titulo').textContent = titulo;
+  $('#pregunta-texto').textContent = texto;
+  $('#pregunta-botones').replaceChildren(...botones.map(([etiqueta, valor, clase = 'boton-claro']) => {
+    const b = el('button', etiqueta, clase);
+    b.type = 'button';
+    b.addEventListener('click', () => d.close(valor ?? ''));
+    return b;
+  }));
+  d.returnValue = '';
+  return new Promise((ok) => { d.addEventListener('close', () => ok(d.returnValue || null), { once: true }); d.showModal(); });
+}
 
 // Recarga una vista solo cuando está a la vista: si cambian los datos con otra pantalla abierta, espera a que la abran.
 // Así no se leen todas las plantas (con fotos) en cada cambio para pantallas que nadie está mirando.
@@ -19,7 +38,7 @@ export function perezosa(vistaId, cargar, alFallar = () => {}) {
   correr();
 }
 
-const ETIQUETAS = { inicial: 'Inventario inicial', entrada: 'Entrada', baja: 'Baja', pedido: 'Pedido', devolucion: 'Devolución' };
+const ETIQUETAS = { inicial: 'Inventario inicial', entrada: 'Compra / entrada', baja: 'Baja', correccion: 'Corrección', pedido: 'Pedido', devolucion: 'Devolución' };
 export function tarjetaMovimiento(m) {
   const art = el('article', '', 'movimiento');
   const cant = el('strong', `${m.cantidad > 0 ? '+' : ''}${m.cantidad}`, m.cantidad > 0 ? 'sube' : 'baja');
