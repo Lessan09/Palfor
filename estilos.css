@@ -147,10 +147,17 @@ dialog h3 { margin-top: 14px; } dialog > * + * { margin-top: 12px; }
 .movimiento > strong { font-size: 20px; text-align: center; } .movimiento .sube { color: var(--green-dark); } .movimiento .baja { color: var(--rojo); }
 .movimiento p { margin: 0; } .mov-titulo { font-weight: 700; }
 
-.menu { width: min(420px, 100%); margin: auto auto 0; border-radius: 24px 24px 0 0; padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
-.menu-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin: 14px 0; }
-.menu-lista button { display: grid; justify-items: center; gap: 4px; min-height: 76px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: var(--relieve-chico); font-size: 22px; }
-.menu-lista button span { font-size: 13px; font-weight: 700; color: var(--green-dark); }
+.hamburguesa { flex: none; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); box-shadow: var(--relieve-chico); color: var(--green-dark); font-size: 22px; line-height: 1; }
+.hamburguesa:active, .hamburguesa[aria-current=page] { box-shadow: var(--hundido); }
+/* Menú lateral: sale desde la derecha */
+.menu { position: fixed; inset: 0 0 0 auto; width: min(300px, 86vw); height: 100dvh; max-height: 100dvh; margin: 0; padding: calc(22px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom)); border-radius: 24px 0 0 24px; }
+.menu[open] { animation: entra-lateral .22s ease-out; }
+@keyframes entra-lateral { from { transform: translateX(100%); } }
+.menu-lista { display: grid; gap: 12px; margin: 16px 0; }
+.menu-lista button { display: grid; grid-template-columns: 30px 1fr; align-items: center; gap: 14px; justify-items: start; min-height: 56px; padding: 0 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: var(--relieve-chico); font-size: 22px; text-align: left; }
+.menu-lista button:active { box-shadow: var(--hundido); }
+.menu-lista button span { font-size: 15px; font-weight: 700; color: var(--green-dark); }
+@media (prefers-reduced-motion: reduce) { .menu[open] { animation: none; } }
 @media (max-width: 520px) { .linea { grid-template-columns: 1fr 1fr 44px; } .linea select { grid-column: 1 / -1; } .planta-paq { flex-wrap: wrap; } }
-@media (max-width: 400px) { .pestanas { gap: 2px; padding-inline: 4px; } .pestanas button span { font-size: 10px; } }
+@media (max-width: 400px) { .barra { gap: 8px; } .conexion { padding: 4px 9px; font-size: 11px; } }
 .filtros .campo-corto { flex: 1 1 100px; grid-auto-flow: row; gap: 4px; } .filtros select { width: 100%; }
