@@ -7,6 +7,7 @@ import './categorias.js';
 import './respaldo.js';
 import './clima.js';
 import './calculadora.js';
+import './tema.js';
 
 const $ = (s) => document.querySelector(s);
 const vistas = [...document.querySelectorAll('.vista')];

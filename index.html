@@ -9,6 +9,7 @@
   <link rel="icon" href="iconos/icono-192.png">
   <link rel="apple-touch-icon" href="iconos/icono-192.png">
   <link rel="stylesheet" href="estilos.css">
+  <script>try { const t = localStorage.getItem('palfor-tema') || 'claro'; document.documentElement.dataset.tema = t === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro') : t; } catch {}</script>
   <script type="module" src="main.js"></script>
 </head>
 <body>
@@ -130,6 +131,13 @@
       </div>
     </section>
 
+    <section id="ajustes" class="vista" aria-label="Ajustes" hidden>
+      <div class="encabezado"><div><p class="eyebrow">PERSONALIZA</p><h2>Ajustes</h2></div></div>
+      <h3>Apariencia</h3>
+      <p class="nota">Elige los colores de Palfor. Se guarda en este dispositivo.</p>
+      <div id="temas" class="temas" role="group" aria-label="Tema de color"></div>
+    </section>
+
     <section id="respaldo" class="vista" aria-label="Respaldo" hidden>
       <div class="encabezado"><div><p class="eyebrow">TUS DATOS</p><h2>Respaldo</h2></div></div>
       <p class="nota">Todo vive en este dispositivo. Guarda un respaldo seguido, y siempre antes de actualizar la app.</p>
@@ -157,6 +165,7 @@
       <button type="button" data-vista="categorias">🏷️<span>Categorías</span></button>
       <button type="button" data-vista="clima">☀<span>Clima</span></button>
       <button type="button" data-vista="calculadora">＋<span>Calculadora</span></button>
+      <button type="button" data-vista="ajustes">⚙️<span>Ajustes</span></button>
       <button type="button" data-vista="respaldo">💾<span>Respaldo</span></button>
     </div>
     <button id="menu-cerrar" class="boton-claro" type="button">Cerrar</button>
